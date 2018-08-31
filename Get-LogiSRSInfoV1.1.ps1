@@ -123,7 +123,7 @@ Function GetSoftware  {
   # Prevent Objects with empty DisplayName
 
 						$DisplayName =  $thisSubKey.getValue("DisplayName")
-  					If ($DisplayName  -AND $DisplayName -like "Logitech Camera Settings" -AND $DisplayName  -notmatch '^Update  for|rollup|^Security Update|^Service Pack|^HotFix') {
+  					If ($DisplayName  -AND $DisplayName -like "Logitech*" -AND $DisplayName  -notmatch '^Update  for|rollup|^Security Update|^Service Pack|^HotFix') {
 						$Date = $thisSubKey.GetValue('InstallDate')
 						If ($Date) {
 							Try {
@@ -216,7 +216,7 @@ $UninstallString =  Try {
 
 function OutputContent() {
 
-ConvertTo-HTML -Body $SerialHTML -Title "Logitech Status" | Out-File c:\status.html
+#ConvertTo-HTML -Body $SerialHTML -Title "Logitech Status" | Out-File c:\status.html
 
 }
 
@@ -230,3 +230,4 @@ CheckWindowsActivation
 GetSRSVersion
 GetSoftware
 OutputContent
+sleep 30
