@@ -220,6 +220,12 @@ function OutputContent() {
 
 }
 
+function WrapItUp() {
+
+Read-Host "Press any key to exit"
+
+}
+
 #Computer baseline function may be used in the future
 #GetComputerBaseline
 
@@ -230,4 +236,4 @@ CheckWindowsActivation
 GetSRSVersion
 GetSoftware
 OutputContent
-sleep 30
+WrapItUp
