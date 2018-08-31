@@ -80,17 +80,11 @@ $package = get-appxpackage -Name Microsoft.SkypeRoomSystem; if ($package -eq $nu
 }
 
 Function GetSoftware  {
-
   [OutputType('System.Software.Inventory')]
-
   [Cmdletbinding()]
-
   Param(
-
   [Parameter(ValueFromPipeline=$True,ValueFromPipelineByPropertyName=$True)]
-
   [String[]]$Computername=$env:COMPUTERNAME
-
   )
 
   Begin {
@@ -98,76 +92,51 @@ Function GetSoftware  {
   }
 
   Process  {
-
-  ForEach  ($Computer in  $Computername){
-
-  If  (Test-Connection -ComputerName  $Computer -Count  1 -Quiet) {
-
-  $Paths  = @("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall","SOFTWARE\\Wow6432node\\Microsoft\\Windows\\CurrentVersion\\Uninstall")
-
-  ForEach($Path in $Paths) {
-
-  Write-Verbose  "Checking Path: $Path"
+  	ForEach  ($Computer in  $Computername){
+  		If  (Test-Connection -ComputerName  $Computer -Count  1 -Quiet) {
+  			$Paths  = @("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall","SOFTWARE\\Wow6432node\\Microsoft\\Windows\\CurrentVersion\\Uninstall")
+  				ForEach($Path in $Paths) {
+					Write-Verbose  "Checking Path: $Path"
 
   #  Create an instance of the Registry Object and open the HKLM base key
 
-  Try  {
-
-  $reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$Computer,'Registry64')
-
-  } Catch  {
-
-  Write-Error $_
-
-  Continue
-
-  }
+  					Try  {
+  					$reg=[microsoft.win32.registrykey]::OpenRemoteBaseKey('LocalMachine',$Computer,'Registry64')
+						} Catch  {
+						Write-Error $_
+						Continue
+						}
 
   #  Drill down into the Uninstall key using the OpenSubKey Method
 
-  Try  {
+  					Try  {
+						$regkey=$reg.OpenSubKey($Path)
+	# Retrieve an array of string that contain all the subkey names
 
-  $regkey=$reg.OpenSubKey($Path)
-
-  # Retrieve an array of string that contain all the subkey names
-
-  $subkeys=$regkey.GetSubKeyNames()
+						$subkeys=$regkey.GetSubKeyNames()
 
   # Open each Subkey and use GetValue Method to return the required  values for each
 
-  ForEach ($key in $subkeys){
+  					ForEach ($key in $subkeys){
+  					Write-Verbose "Key: $Key"
+  					$thisKey=$Path+"\\"+$key
 
-  Write-Verbose "Key: $Key"
-
-  $thisKey=$Path+"\\"+$key
-
-  Try {
-
-  $thisSubKey=$reg.OpenSubKey($thisKey)
+						Try {
+						$thisSubKey=$reg.OpenSubKey($thisKey)
 
   # Prevent Objects with empty DisplayName
 
-  $DisplayName =  $thisSubKey.getValue("DisplayName")
-
-  If ($DisplayName  -AND $DisplayName -like "Logitech Camera Settings" -AND $DisplayName  -notmatch '^Update  for|rollup|^Security Update|^Service Pack|^HotFix') {
-
-  $Date = $thisSubKey.GetValue('InstallDate')
-
-  If ($Date) {
-
-  Try {
-
-  $Date = [datetime]::ParseExact($Date, 'yyyyMMdd', $Null)
-
-  } Catch{
-
-  Write-Warning "$($Computer): $_ <$($Date)>"
-
-  $Date = $Null
-
-  }
-
-  }
+						$DisplayName =  $thisSubKey.getValue("DisplayName")
+  					If ($DisplayName  -AND $DisplayName -like "Logitech Camera Settings" -AND $DisplayName  -notmatch '^Update  for|rollup|^Security Update|^Service Pack|^HotFix') {
+						$Date = $thisSubKey.GetValue('InstallDate')
+						If ($Date) {
+							Try {
+							$Date = [datetime]::ParseExact($Date, 'yyyyMMdd', $Null)
+							} Catch{
+							Write-Warning "$($Computer): $_ <$($Date)>"
+  					$Date = $Null
+							}
+						}
 
   # Create New Object with empty Properties
 
