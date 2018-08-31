@@ -2,20 +2,16 @@
 
 
 # Script that gathers info for Logitech SRS Systems
+# GetSoftware function from many sources including
+# https://gallery.technet.microsoft.com/scriptcenter/Get-Software-Function-to-bd2e0204
+
 # Author: Luke Kannel
 # Version Control:
 # V1.0 - Initial Release
 # V1.1 - Updated Skype Room Enumeration to look for any version
 
 
-
-
-
 #Clear Variables
-
-
-
-
 
 
 function GetComputerBaseline() {
@@ -141,101 +137,58 @@ Function GetSoftware  {
   # Create New Object with empty Properties
 
   $Publisher =  Try {
-
-  $thisSubKey.GetValue('Publisher').Trim()
-
-  }
-
-  Catch {
-
-  $thisSubKey.GetValue('Publisher')
-
-  }
-
+  	$thisSubKey.GetValue('Publisher').Trim()
+  	}
+  	Catch {
+  	$thisSubKey.GetValue('Publisher')
+  	}
   $Version = Try {
+  	#Some weirdness with trailing [char]0 on some strings
+  	$thisSubKey.GetValue('DisplayVersion').TrimEnd(([char[]](32,0)))
+  	}
+  	Catch {
+  	$thisSubKey.GetValue('DisplayVersion')
+  	}
 
-  #Some weirdness with trailing [char]0 on some strings
-
-  $thisSubKey.GetValue('DisplayVersion').TrimEnd(([char[]](32,0)))
-
-  }
-
-  Catch {
-
-  $thisSubKey.GetValue('DisplayVersion')
-
-  }
-
-  $UninstallString =  Try {
-
+$UninstallString =  Try {
   $thisSubKey.GetValue('UninstallString').Trim()
-
   }
-
   Catch {
-
   $thisSubKey.GetValue('UninstallString')
-
   }
 
   $InstallLocation =  Try {
-
   $thisSubKey.GetValue('InstallLocation').Trim()
-
   }
-
   Catch {
-
   $thisSubKey.GetValue('InstallLocation')
-
   }
 
   $InstallSource =  Try {
-
-  $thisSubKey.GetValue('InstallSource').Trim()
-
-  }
-
+  	$thisSubKey.GetValue('InstallSource').Trim()
+  	}
   Catch {
-
-  $thisSubKey.GetValue('InstallSource')
-
-  }
+  	$thisSubKey.GetValue('InstallSource')
+  	}
 
   $HelpLink = Try {
-
   $thisSubKey.GetValue('HelpLink').Trim()
-
   }
-
   Catch {
-
   $thisSubKey.GetValue('HelpLink')
-
   }
 
   $Object = [pscustomobject]@{
-
-  Computername = $Computer
-
-  DisplayName = $DisplayName
-
-  Version  = $Version
-
-  InstallDate = $Date
-
-  Publisher = $Publisher
-
-  UninstallString = $UninstallString
-
-  InstallLocation = $InstallLocation
-
-  InstallSource  = $InstallSource
-
-  HelpLink = $thisSubKey.GetValue('HelpLink')
-
-  EstimatedSizeMB = [decimal]([math]::Round(($thisSubKey.GetValue('EstimatedSize')*1024)/1MB,2))
-
+		Computername = $Computer
+  	DisplayName = $DisplayName
+  	Version  = $Version
+  	InstallDate = $Date
+  	Publisher = $Publisher
+  	UninstallString = $UninstallString
+  	InstallLocation = $InstallLocation
+  	InstallSource  = $InstallSource
+  	HelpLink = $thisSubKey.GetValue('HelpLink')
+  	EstimatedSizeMB = [decimal]([math]::Round(($thisSubKey.GetValue('EstimatedSize')*1024)/1MB,2))
   }
 
   $Object.pstypenames.insert(0,'System.Software.Inventory')
@@ -244,33 +197,21 @@ Function GetSoftware  {
   Write-Host $DisplayName ":" $Version
 #$SRSInfo | Add-Member -NotePropertyName "LogiCamVersion" -NotePropertyValue  $Version
 
-
   }
 
   } Catch {
-
   Write-Warning "$Key : $_"
-
   }
-
   }
-
   } Catch  {}
-
   $reg.Close()
 
   }
-
   } Else  {
-
   Write-Error  "$($Computer): unable to reach remote system!"
-
   }
-
+  	}
   }
-
-  }
-
 }
 
 function OutputContent() {
