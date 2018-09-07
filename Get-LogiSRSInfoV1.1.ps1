@@ -9,9 +9,15 @@
 # Version Control:
 # V1.0 - Initial Release
 # V1.1 - Updated Skype Room Enumeration to look for any version
+# V1.2 - Updated to script-scoped variables for future data parsing and export
 
 
 #Clear Variables
+
+$script:HardwareInfo  = @()
+$script:WindowsInfo  = @()
+$script:SkypeRoomInfo = @()
+$script:LogiSoftware = @()
 
 
 function GetComputerBaseline() {
@@ -27,6 +33,7 @@ $SerialQuery = “Select * from Win32_Bios”
 $BIOSInfo = Get-WmiObject -Query $SerialQuery
 $SRSSerialNumber = $BIOSInfo.SerialNumber
 
+$script:HardwareInfo  += ("Surface Serial Number",$SRSSerialNumber)
 
 $SerialHTML = "Surface Serial Number: " + $SRSSerialNumber | ConvertTo-HTML -Fragment
 
@@ -42,7 +49,10 @@ $WinVer | Add-Member -MemberType NoteProperty -Name Build -Value $(Get-ItemPrope
 $WinVer | Add-Member -MemberType NoteProperty -Name Revision -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' UBR).UBR
 $SRSFullWindowsVersion = $WinVer.Major, $WinVer.Minor, $WinVer.Build, $WinVer.Revision -join "."
 
-Write-Host "Windows Version: " $SRSFullWindowsVersion
+
+$script:WindowsInfo  += ("Windows Version",$SRSFullWindowsVersion)
+
+#Write-Host "Windows Version: " $SRSFullWindowsVersion
 #$SRSInfo | Add-Member -NotePropertyName "WindowsVersion" -NotePropertyValue  $SRSFullWindowsVersion
 
 }
@@ -54,17 +64,22 @@ If ($SRSLicenseObject.LicenseStatus -ne "1") {
 	$SRSLicenseStatus = "Not Activated" } else {
 	$SRSLicenseStatus = "Activated"
 	}
-Write-Host "Windows Activation Status:" $SRSLicenseStatus
+
+$script:WindowsInfo  += ("Windows Activation Status",$SRSLicenseStatus)
+#Write-Host "Windows Activation Status:" $SRSLicenseStatus
 }
 
 function GetSRSVersion() {
 
 #Modified to use query from Technet for determining SRS existence. Remove "Skype" user from query scope
 $package = get-appxpackage -Name Microsoft.SkypeRoomSystem; if ($package -eq $null) {
-	Write-host "SkypeRoomSystems not installed."
+	$script:SkypeRoomInfo  += ("Skype Room System Version","Not Installed")
 	} else {
 	$SRSVersion = $package.Version
-	write-host "SkypeRoomSystem Version : " $SRSVersion
+
+	$script:SkypeRoomInfo  += ("Skype Room System Version",$SRSVersion)
+
+	#write-host "SkypeRoomSystem Version : " $SRSVersion
 	}
 
 #$SRSPath = get-item "C:\Program Files\WindowsApps\Microsoft.SkypeRoomSystem*\Microsoft.SkypeRoomSystem.exe"
@@ -194,7 +209,9 @@ $UninstallString =  Try {
   $Object.pstypenames.insert(0,'System.Software.Inventory')
 
   #Write-Output $Object
-  Write-Host $DisplayName ":" $Version
+  #Write-Host $DisplayName ":" $Version
+
+	$script:LogiSoftware += ($DisplayName,$Version)
 #$SRSInfo | Add-Member -NotePropertyName "LogiCamVersion" -NotePropertyValue  $Version
 
   }
@@ -216,6 +233,9 @@ $UninstallString =  Try {
 
 function OutputContent() {
 
+Write-Host $script:WindowsInfo
+Write-Host $script:SkypeRoomInfo
+Write-Host $script:LogiSoftware
 #ConvertTo-HTML -Body $SerialHTML -Title "Logitech Status" | Out-File c:\status.html
 
 }
