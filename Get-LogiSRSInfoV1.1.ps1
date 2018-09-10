@@ -12,7 +12,6 @@
 # V1.2 - Updated to script-scoped variables for future data parsing and export
 
 
-#Clear Variables
 
 function InitVariables() {
 	$script:HardwareInfo  = @()
