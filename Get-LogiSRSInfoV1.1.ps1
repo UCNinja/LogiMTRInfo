@@ -11,7 +11,13 @@
 # V1.1 - Updated Skype Room Enumeration to look for any version
 # V1.2 - Updated to script-scoped variables for future data parsing and export
 
+Param(
+    [parameter(Mandatory=$false,
+    ParameterSetName="Computer")]
+    [String[]]
+    $ComputerName
 
+)
 
 function InitVariables() {
 	$script:HardwareInfo  = @()
@@ -19,6 +25,8 @@ function InitVariables() {
 	$script:SkypeRoomInfo = @()
 	$script:LogiSoftware = @()
 }
+
+
 
 function GetComputerBaseline() {
 
@@ -33,9 +41,9 @@ $SerialQuery = “Select * from Win32_Bios”
 $BIOSInfo = Get-WmiObject -Query $SerialQuery
 $SRSSerialNumber = $BIOSInfo.SerialNumber
 
-$script:HardwareInfo  += ("Surface Serial Number",$SRSSerialNumber)
+$script:HardwareInfo  += ("Serial Number",$SRSSerialNumber)
 
-$SerialHTML = "Surface Serial Number: " + $SRSSerialNumber | ConvertTo-HTML -Fragment
+$SerialHTML = "Serial Number: " + $SRSSerialNumber | ConvertTo-HTML -Fragment
 
 #$SRSInfo | Add-Member -NotePropertyName "SurfaceSerialNumber" -NotePropertyValue $SRSSerialNumber
 
@@ -228,6 +236,7 @@ $UninstallString =  Try {
 
 function OutputContent() {
 
+WRite-Host $script:HardwareInfo
 Write-Host $script:WindowsInfo
 Write-Host $script:SkypeRoomInfo
 Write-Host $script:LogiSoftware
@@ -241,14 +250,35 @@ Read-Host "Press any key to exit"
 
 }
 
-#Computer baseline function may be used in the future
-#GetComputerBaseline
+
+function Main() {
+
+If ($ComputerName) {
+	Write-Host $ComputerName
+	$Credentials = Get-Credential
+	#Run Remote Powershell
+
+	Invoke-Command -ComputerName $ComputerName -ScriptBlock ${Function:GetSurfaceSerialNumber} -Credential $Credentials
+	GetWindowsVersion
+	CheckWindowsActivation
+	GetSRSVersion
+	GetSoftware
+	OutputContent
+	WrapItUp
+
+	} else {
+	Write-Host "No Computer Specified"
+	#Run local powershell
+	GetSurfaceSerialNumber
+	GetWindowsVersion
+	CheckWindowsActivation
+	GetSRSVersion
+	GetSoftware
+	OutputContent
+	WrapItUp
+	}
+
+}
 
 InitVariables
-GetSurfaceSerialNumber
-GetWindowsVersion
-CheckWindowsActivation
-GetSRSVersion
-GetSoftware
-OutputContent
-WrapItUp
+Main
