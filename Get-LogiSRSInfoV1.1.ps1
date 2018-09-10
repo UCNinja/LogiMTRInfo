@@ -14,11 +14,12 @@
 
 #Clear Variables
 
-$script:HardwareInfo  = @()
-$script:WindowsInfo  = @()
-$script:SkypeRoomInfo = @()
-$script:LogiSoftware = @()
-
+function InitVariables() {
+	$script:HardwareInfo  = @()
+	$script:WindowsInfo  = @()
+	$script:SkypeRoomInfo = @()
+	$script:LogiSoftware = @()
+}
 
 function GetComputerBaseline() {
 
@@ -76,17 +77,12 @@ $package = get-appxpackage -Name Microsoft.SkypeRoomSystem; if ($package -eq $nu
 	$script:SkypeRoomInfo  += ("Skype Room System Version","Not Installed")
 	} else {
 	$SRSVersion = $package.Version
-
 	$script:SkypeRoomInfo  += ("Skype Room System Version",$SRSVersion)
-
 	#write-host "SkypeRoomSystem Version : " $SRSVersion
 	}
 
-#$SRSPath = get-item "C:\Program Files\WindowsApps\Microsoft.SkypeRoomSystem*\Microsoft.SkypeRoomSystem.exe"
-
 
 #$SRSInfo | Add-Member -NotePropertyName "SRSVersion" -NotePropertyValue  $SRSVersion
-
 
 }
 
@@ -249,7 +245,7 @@ Read-Host "Press any key to exit"
 #Computer baseline function may be used in the future
 #GetComputerBaseline
 
-
+InitVariables
 GetSurfaceSerialNumber
 GetWindowsVersion
 CheckWindowsActivation
