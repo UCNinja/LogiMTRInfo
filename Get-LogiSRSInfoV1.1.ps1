@@ -20,7 +20,11 @@ Param(
 )
 
 function InitVariables() {
+  $script:HTMLContent = $null
+  $HardwareHTML = $null
+  $BIOSHTML = $null
 	$script:HardwareInfo  = @()
+  $script:BIOSInfo  = @()
 	$script:WindowsInfo  = @()
 	$script:SkypeRoomInfo = @()
 	$script:LogiSoftware = @()
@@ -30,22 +34,15 @@ function InitVariables() {
 
 function GetComputerBaseline() {
 
-$SRSInfo = Get-ComputerInfo
-return $SRSInfo
+  $SRSInfo = Get-ComputerInfo
+  return $SRSInfo
 }
 
 
-function GetSurfaceSerialNumber() {
+function GetHardwareInfo() {
 
-$SerialQuery = “Select * from Win32_Bios”
-$BIOSInfo = Get-WmiObject -Query $SerialQuery
-$SRSSerialNumber = $BIOSInfo.SerialNumber
-
-$script:HardwareInfo  += ("Serial Number",$SRSSerialNumber)
-
-$SerialHTML = "Serial Number: " + $SRSSerialNumber | ConvertTo-HTML -Fragment
-
-#$SRSInfo | Add-Member -NotePropertyName "SurfaceSerialNumber" -NotePropertyValue $SRSSerialNumber
+  $script:HardwareInfo = gwmi -Class Win32_ComputerSystem
+  $script:BIOSInfo = gwmi -Class Win32_Bios
 
 }
 
@@ -57,11 +54,9 @@ $WinVer | Add-Member -MemberType NoteProperty -Name Build -Value $(Get-ItemPrope
 $WinVer | Add-Member -MemberType NoteProperty -Name Revision -Value $(Get-ItemProperty -Path 'Registry::HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion' UBR).UBR
 $SRSFullWindowsVersion = $WinVer.Major, $WinVer.Minor, $WinVer.Build, $WinVer.Revision -join "."
 
+$script:WindowsInfo = New-Object -TypeName PSObject
+$script:WindowsInfo | Add-Member -MemberType NoteProperty -Name WindowsVersion -Value $SRSFullWindowsVersion
 
-$script:WindowsInfo  += ("Windows Version",$SRSFullWindowsVersion)
-
-#Write-Host "Windows Version: " $SRSFullWindowsVersion
-#$SRSInfo | Add-Member -NotePropertyName "WindowsVersion" -NotePropertyValue  $SRSFullWindowsVersion
 
 }
 
@@ -73,21 +68,25 @@ If ($SRSLicenseObject.LicenseStatus -ne "1") {
 	$SRSLicenseStatus = "Activated"
 	}
 
-$script:WindowsInfo  += ("Windows Activation Status",$SRSLicenseStatus)
+$script:WindowsInfo | Add-Member -MemberType NoteProperty -Name ActivationStatus -Value $SRSLicenseStatus
 #Write-Host "Windows Activation Status:" $SRSLicenseStatus
 }
 
 function GetSRSVersion() {
 
+$script:SkypeRoomInfo = New-Object -TypeName PSObject
+
 #Modified to use query from Technet for determining SRS existence. Remove "Skype" user from query scope
+
 $package = get-appxpackage -Name Microsoft.SkypeRoomSystem; if ($package -eq $null) {
-	$script:SkypeRoomInfo  += ("Skype Room System Version","Not Installed")
+  $script:SkypeRoomInfo | Add-Member -MemberType NoteProperty -Name SkypeRoomVersion -Value "NotInstalled"
+
 	} else {
 	$SRSVersion = $package.Version
-	$script:SkypeRoomInfo  += ("Skype Room System Version",$SRSVersion)
-	#write-host "SkypeRoomSystem Version : " $SRSVersion
-	}
+  $script:SkypeRoomInfo | Add-Member -MemberType NoteProperty -Name SkypeRoomVersion -Value $SRSVersion
 
+
+	}
 
 #$SRSInfo | Add-Member -NotePropertyName "SRSVersion" -NotePropertyValue  $SRSVersion
 
@@ -106,11 +105,18 @@ Function GetSoftware  {
   }
 
   Process  {
+
+  #Init variables
+  $temp = $null
+
   	ForEach  ($Computer in  $Computername){
   		If  (Test-Connection -ComputerName  $Computer -Count  1 -Quiet) {
   			$Paths  = @("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall","SOFTWARE\\Wow6432node\\Microsoft\\Windows\\CurrentVersion\\Uninstall")
   				ForEach($Path in $Paths) {
 					Write-Verbose  "Checking Path: $Path"
+
+          #Init variables
+          $temp = $null
 
   #  Create an instance of the Registry Object and open the HKLM base key
 
@@ -129,7 +135,11 @@ Function GetSoftware  {
 
 						$subkeys=$regkey.GetSubKeyNames()
 
+  # create Array for storing values
+
+
   # Open each Subkey and use GetValue Method to return the required  values for each
+
 
   					ForEach ($key in $subkeys){
   					Write-Verbose "Key: $Key"
@@ -211,10 +221,12 @@ $UninstallString =  Try {
 
   $Object.pstypenames.insert(0,'System.Software.Inventory')
 
-  #Write-Output $Object
-  #Write-Host $DisplayName ":" $Version
 
-	$script:LogiSoftware += ($DisplayName,$Version)
+$temp = New-Object System.Object
+$temp |  Add-Member -NotePropertyName Software -NotePropertyValue $DisplayName -PassThru | Add-Member -NotePropertyName SoftwareVersion -NotePropertyValue $Version -PassThru
+$script:LogiSoftware += $temp
+
+
 #$SRSInfo | Add-Member -NotePropertyName "LogiCamVersion" -NotePropertyValue  $Version
 
   }
@@ -236,17 +248,48 @@ $UninstallString =  Try {
 
 function OutputContent() {
 
-WRite-Host $script:HardwareInfo
-Write-Host $script:WindowsInfo
-Write-Host $script:SkypeRoomInfo
-Write-Host $script:LogiSoftware
-#ConvertTo-HTML -Body $SerialHTML -Title "Logitech Status" | Out-File c:\status.html
+#Initialize Function variables
+
+$HardwareHTML = $null
+$WindowsHTML = $null
+$SkypeRoomHTML = $null
+$LogiSoftwareHTML = $null
+
+
+#Format HTML Header (thanks https://4sysops.com/archives/building-html-reports-in-powershell-with-convertto-html/)
+# And thanks to https://techontip.wordpress.com/2015/01/08/powershell-html-report-with-multiple-tables/
+
+$Header = @"
+<style>
+TABLE {border-width: 1px; border-style: solid; border-color: black; border-collapse: collapse;}
+TH {border-width: 1px; padding: 3px; border-style: solid; border-color: black; background-color: #6495ED;}
+TD {border-width: 1px; padding: 3px; border-style: solid; border-color: black;}
+</style>
+"@
+
+$HardwareHTML = ($script:HardwareInfo | ConvertTo-HTML -As LIST -Property Name,PartofDomain,Domain,Workgroup,Manufacturer,Model -Fragment -PreContent '<h2>Computer Info</h2>' | Out-String )
+$BIOSHTML = ($script:BIOSInfo | ConvertTo-HTML -As LIST -Property SerialNumber,SMBIOSBIOSVersion -Fragment -PreContent '<h2>BIOS Info</h2>' | Out-String )
+$WindowsHTML = ($script:WindowsInfo | ConvertTo-HTML -As LIST -Property WindowsVersion,ActivationStatus -Fragment -PreContent '<h2>Windows Info</h2>' | Out-String )
+$SkypeRoomHTML = ($script:SkypeRoomInfo | ConvertTo-HTML -As LIST -Property SkypeRoomVersion -Fragment -PreContent '<h2>Skype Room Info</h2>' | Out-String )
+$LogiSoftwareHTML = ($script:LogiSoftware | ConvertTo-HTML -Property Software,SoftwareVersion -Fragment -PreContent '<h2>Logitech Software Info</h2>' | Out-String )
+
+
+#Setup Output File
+if (Test-Path C:\Logitech) {} Else {mkdir C:\Logitech}
+$FileName = $null
+$OutputFileName = $null
+$FileName = (Get-Date).tostring("dd-MM-yyyy-hh-mm-ss")
+$OutputFileName = ("C:\Logitech\" + ($script:HardwareInfo.Name) + "_" + ($FileName) + ".html")
+
+ConvertTo-HTML -Head $Header -PostContent $HardwareHTML,$BIOSHTML,$WindowsHTML,$SkypeRoomHTML,$LogiSoftwareHTML -PreContent "<h1>Logitech Inventory</h1>" | Out-File $OutputFileName
+
+Start $OutputFileName
 
 }
 
 function WrapItUp() {
 
-Read-Host "Press any key to exit"
+#Read-Host "Press any key to exit"
 
 }
 
@@ -258,7 +301,7 @@ If ($ComputerName) {
 	$Credentials = Get-Credential
 	#Run Remote Powershell
 
-	Invoke-Command -ComputerName $ComputerName -ScriptBlock ${Function:GetSurfaceSerialNumber} -Credential $Credentials
+	Invoke-Command -ComputerName $ComputerName -ScriptBlock ${Function:GetHardwareInfo} -Credential $Credentials
 	GetWindowsVersion
 	CheckWindowsActivation
 	GetSRSVersion
@@ -267,9 +310,9 @@ If ($ComputerName) {
 	WrapItUp
 
 	} else {
-	Write-Host "No Computer Specified"
+	Write-Host "Running against local computer..."
 	#Run local powershell
-	GetSurfaceSerialNumber
+	GetHardwareInfo
 	GetWindowsVersion
 	CheckWindowsActivation
 	GetSRSVersion
