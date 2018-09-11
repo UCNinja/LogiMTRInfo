@@ -78,7 +78,7 @@ $script:SkypeRoomInfo = New-Object -TypeName PSObject
 
 #Modified to use query from Technet for determining SRS existence. Remove "Skype" user from query scope
 
-$package = get-appxpackage -Name Microsoft.SkypeRoomSystem; if ($package -eq $null) {
+$package = get-appxpackage -Name Microsoft.SkypeRoomSystem -User Skype; if ($package -eq $null) {
   $script:SkypeRoomInfo | Add-Member -MemberType NoteProperty -Name SkypeRoomVersion -Value "NotInstalled"
 
 	} else {
