@@ -61,6 +61,29 @@ $script:WindowsInfo | Add-Member -MemberType NoteProperty -Name WindowsVersion -
 }
 
 
+function GetSurfaceProDetail() {
+  # Check for Surface Pro details and if the 49-day battery fix is applied
+
+  if ($script:HardwareInfo.Model = "Surface Pro") {
+
+    Write-Host "This is a Surface Pro that needs to be checked"
+
+    $SurfaceProDriver = New-Object -TypeName PSObject
+    $SurfaceProDriver = (Get-WmiObject Win32_PnPSignedDriver |? {$_.DeviceName -like "*Surface System Aggregator*"})
+
+    # 234.2237.257.0 or higher for an SP5 then its up to date. Earlier than that and it may experience the known power bug.
+
+    $script:HardwareInfo | Add-Member -MemberType NoteProperty -Name "SurfaceProAggregator" -Value $SurfaceProDriver.DriverVersion
+  } Else {
+
+    $script:HardwareInfo | Add-Member -MemberType NoteProperty -Name "SurfaceProAggregator" -Value "Not Applicable"
+
+  }
+
+
+}
+
+
 function CheckWindowsActivation() {
 $SRSLicenseObject = Get-CimInstance -ClassName SoftwareLicensingProduct |where PartialProductKey |select LicenseStatus
 If ($SRSLicenseObject.LicenseStatus -ne "1") {
@@ -76,7 +99,7 @@ function GetSRSVersion() {
 
 $script:SkypeRoomInfo = New-Object -TypeName PSObject
 
-#Modified to use query from Technet for determining SRS existence. Remove "Skype" user from query scope
+#Modified to use query from Technet for determining SRS existence.
 
 $package = get-appxpackage -Name Microsoft.SkypeRoomSystem -User Skype; if ($package -eq $null) {
   $script:SkypeRoomInfo | Add-Member -MemberType NoteProperty -Name SkypeRoomVersion -Value "NotInstalled"
@@ -267,7 +290,7 @@ TD {border-width: 1px; padding: 3px; border-style: solid; border-color: black;}
 </style>
 "@
 
-$HardwareHTML = ($script:HardwareInfo | ConvertTo-HTML -As LIST -Property Name,PartofDomain,Domain,Workgroup,Manufacturer,Model -Fragment -PreContent '<h2>Computer Info</h2>' | Out-String )
+$HardwareHTML = ($script:HardwareInfo | ConvertTo-HTML -As LIST -Property Name,PartofDomain,Domain,Workgroup,Manufacturer,Model,SurfaceProAggregator -Fragment -PreContent '<h2>Computer Info</h2>' | Out-String )
 $BIOSHTML = ($script:BIOSInfo | ConvertTo-HTML -As LIST -Property SerialNumber,SMBIOSBIOSVersion -Fragment -PreContent '<h2>BIOS Info</h2>' | Out-String )
 $WindowsHTML = ($script:WindowsInfo | ConvertTo-HTML -As LIST -Property WindowsVersion,ActivationStatus -Fragment -PreContent '<h2>Windows Info</h2>' | Out-String )
 $SkypeRoomHTML = ($script:SkypeRoomInfo | ConvertTo-HTML -As LIST -Property SkypeRoomVersion -Fragment -PreContent '<h2>Skype Room Info</h2>' | Out-String )
@@ -313,6 +336,7 @@ If ($ComputerName) {
 	Write-Host "Running against local computer..."
 	#Run local powershell
 	GetHardwareInfo
+  GetSurfaceProDetail
 	GetWindowsVersion
 	CheckWindowsActivation
 	GetSRSVersion
