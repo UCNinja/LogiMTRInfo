@@ -1,7 +1,7 @@
 ﻿
 
 
-# Script that gathers info for Logitech SRS Systems
+# Script that gathers info for Logitech Microsoft Teams Room Systems
 # GetSoftware function from many sources including
 # https://gallery.technet.microsoft.com/scriptcenter/Get-Software-Function-to-bd2e0204
 
@@ -10,6 +10,7 @@
 # V1.0 - Initial Release
 # V1.1 - Updated Skype Room Enumeration to look for any version
 # V1.2 - Updated to script-scoped variables for future data parsing and export
+# V2.0 - Removed explicit Surface Pro check, now reports all small form factors. Added driver versions, services, and Windows Hotfixes
 
 Param(
     [parameter(Mandatory=$false,
