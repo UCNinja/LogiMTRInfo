@@ -1,2 +1,2 @@
-# LogiSRSCheck
-Checks for software and hardware properties of various Logitech Skype Room System components
+# LogiMTRInfo
+Checks software and hardware attributes of various Logitech Microsoft Teams Rooms on Windows components and provides HTML report.
