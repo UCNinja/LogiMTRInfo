@@ -30,6 +30,7 @@ function InitVariables() {
 	$script:SkypeRoomInfo = @()
 	$script:LogiSoftware = @()
 	$script:DriverInfo = @()
+	$script:ConnectedUSBDevicesInfo = @()	
 	$script:ServicesInfo = @()
 	$script:HotfixInfo = @()
 }
@@ -66,6 +67,8 @@ $script:WindowsInfo | Add-Member -MemberType NoteProperty -Name WindowsVersion -
 # Services Info. Need to create separate software function for Windows Version, Windows Info, Services, Hotfixes and other Software (Like WU Info)
 
 $script:ServicesInfo = Get-Service | Sort DisplayName
+
+$script:ConnectedUSBDevicesInfo = Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '^USB' } | sort -Property FriendlyName -Descending | ft -AutoSize
 
 $script:HotfixInfo = get-wmiobject -class win32_quickfixengineering
 
@@ -288,6 +291,7 @@ $WindowsHTML = ($script:WindowsInfo | ConvertTo-HTML -As LIST -Property WindowsV
 $SkypeRoomHTML = ($script:SkypeRoomInfo | ConvertTo-HTML -As LIST -Property SkypeRoomVersion -Fragment -PreContent '<h2>Skype Room Info</h2>' | Out-String )
 $LogiSoftwareHTML = ($script:LogiSoftware | ConvertTo-HTML -Property Software,SoftwareVersion -Fragment -PreContent '<h2>Logitech Software Info</h2>' | Out-String )
 $DriverInfoHTML = ($script:DriverInfo | ConvertTo-HTML -Property Description,DeviceName,DriverVersion,DriverDate -Fragment -PreContent '<h2>Driver Info</h2>' | Out-String )
+$ConnectedUSBDevicesInfoHTML = ($script:ConnectedUSBDevicesInfo | ConvertTo-HTML -Property FriendlyName,Status,Class,InstanceID -Fragment -PreContent '<h2>Connected USB Devices Info</h2>' | Out-String )
 $ServicesInfoHTML = ($script:ServicesInfo | ConvertTo-HTML -Property DisplayName,Status -Fragment -PreContent '<h2>Services Info</h2>' | Out-String )
 $HotfixInfoHTML = ($script:HotfixInfo | ConvertTo-HTML -Property Description,HotFixID,InstalledOn -Fragment -PreContent '<h2>Hotfix Info</h2>' | Out-String )
 
@@ -299,7 +303,7 @@ $OutputFileName = $null
 $FileName = (Get-Date).tostring("dd-MM-yyyy-hh-mm-ss")
 $OutputFileName = ("C:\Logitech\" + ($script:HardwareInfo.Name) + "_" + ($FileName) + ".html")
 
-ConvertTo-HTML -Head $Header -PostContent $HardwareHTML,$BIOSHTML,$WindowsHTML,$SkypeRoomHTML,$LogiSoftwareHTML,$DriverInfoHTML,$ServicesInfoHTML,$HotfixInfoHTML -PreContent "<h1>Logitech Inventory</h1>" | Out-File $OutputFileName
+ConvertTo-HTML -Head $Header -PostContent $HardwareHTML,$BIOSHTML,$WindowsHTML,$SkypeRoomHTML,$LogiSoftwareHTML,$DriverInfoHTML,$ConnectedUSBDevicesInfoHTML,$ServicesInfoHTML,$HotfixInfoHTML -PreContent "<h1>Logitech Inventory</h1>" | Out-File $OutputFileName
 
 Start $OutputFileName
 
