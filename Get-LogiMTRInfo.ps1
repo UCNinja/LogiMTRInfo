@@ -271,6 +271,7 @@ $WindowsHTML = $null
 $SkypeRoomHTML = $null
 $LogiSoftwareHTML = $null
 $DriverInfoHTML = $null
+$ConnectedUSBDevicesInfoHTML = $null
 $ServicesInfoHTML = $null
 $HotfixInfoHTML = $null
 
