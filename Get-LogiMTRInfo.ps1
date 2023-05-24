@@ -68,7 +68,7 @@ $script:WindowsInfo | Add-Member -MemberType NoteProperty -Name WindowsVersion -
 
 $script:ServicesInfo = Get-Service | Sort DisplayName
 
-$script:ConnectedUSBDevicesInfo = Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '^USB' } | sort -Property FriendlyName -Descending | ft -AutoSize
+$script:ConnectedUSBDevicesInfo = Get-PnpDevice -PresentOnly | Where-Object { $_.InstanceId -match '^USB' } | sort -Property FriendlyName -Descending
 
 $script:HotfixInfo = get-wmiobject -class win32_quickfixengineering
 
